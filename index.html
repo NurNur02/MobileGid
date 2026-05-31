@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>AI Museum Assistant | Музеи Казахстана</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-sidebar: #f0f2f5;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a2e;
+            --text-secondary: #555;
+            --text-muted: #888;
+            --border-color: #e0e0e0;
+            --accent: #C9A84C;
+            --accent-dark: #B8922E;
+            --accent-light: #F5D98F;
+            --bot-bg: #f0f2f5;
+            --user-bg: linear-gradient(135deg, #C9A84C, #B8922E);
+            --user-text: #fff;
+            --shadow: 0 2px 10px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 30px rgba(0,0,0,0.1);
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --error: #e74c3c;
+            /* Safe area insets for notch/home indicator */
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+            --sidebar-w: 320px;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-sidebar: #0f0f23;
+            --bg-card: #1a1a2e;
+            --text-primary: #f0ebd8;
+            --text-secondary: #b8b8c8;
+            --text-muted: #8a8a9a;
+            --border-color: #2a2a3e;
+            --bot-bg: #2a2a3e;
+            --shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        html {
+            height: 100%;
+            /* Prevent text size adjust on orientation change */
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100%;
+            /* Use dvh for dynamic viewport on mobile (handles browser chrome) */
+            height: 100dvh;
+            overflow: hidden;
+            transition: var(--transition);
+            /* Prevent rubber-band scroll on iOS */
+            overscroll-behavior: none;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100%;
+            height: 100dvh;
+            width: 100%;
+            position: relative;
+        }
+
+        /* ═══════════════════════════════════════
+           SIDEBAR
+        ═══════════════════════════════════════ */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            flex-shrink: 0;
+            z-index: 200;
+        }
+
+        .sidebar-header {
+            padding: 16px 20px;
+            padding-top: calc(16px + var(--safe-top));
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .logo-icon { font-size: 1.6rem; }
+
+        .logo-text {
+            font-family: 'Playfair Display', serif;
+            line-height: 1.2;
+        }
+
+        .close-sidebar {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+        .close-sidebar:hover { background: var(--error); color: #fff; border-color: var(--error); }
+
+        .search-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .search-section h3 {
+            font-size: 0.75rem;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem; /* Larger to prevent iOS auto-zoom (must be >= 16px on iOS) */
+            /* iOS fix: prevent zoom on focus */
+            font-size: max(16px, 0.85rem);
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .search-box button {
+            padding: 10px 14px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            color: #1a1a2e;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.85rem;
+            white-space: nowrap;
+            /* Touch target */
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        .search-box button:active { opacity: 0.8; transform: scale(0.97); }
+
+        .city-filters {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .city-filter {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            transition: var(--transition);
+            /* Touch target */
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+        }
+
+        .city-filter:hover, .city-filter.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #1a1a2e;
+        }
+
+        .museum-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            /* Smooth momentum scrolling on iOS */
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+
+        .museum-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid var(--border-color);
+            position: relative;
+            /* Touch feedback */
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .museum-card:active { transform: scale(0.98); }
+
+        .museum-card:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+
+        .museum-card h4 {
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            color: var(--text-primary);
+            padding-right: 30px;
+            line-height: 1.3;
+        }
+
+        .museum-city { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px; }
+        .museum-address { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; }
+        .museum-schedule { font-size: 0.7rem; color: var(--accent); font-weight: 500; }
+
+        .favorite-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: var(--transition);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .favorite-btn:active { transform: scale(1.3); }
+        .favorite-btn.active { color: #ffc107; }
+
+        .favorites-section {
+            padding: 14px;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+            max-height: 180px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .favorites-section h3 {
+            font-size: 0.75rem;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .favorites-list { display: flex; flex-direction: column; gap: 6px; }
+
+        .favorite-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+            min-height: 40px;
+        }
+
+        .favorite-item:active { opacity: 0.8; }
+        .favorite-item:hover { border-color: var(--accent); }
+
+        .favorite-item button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--error);
+            font-size: 1rem;
+            min-width: 36px;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle {
+            padding: 12px 16px;
+            padding-bottom: calc(12px + var(--safe-bottom));
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .theme-btn {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            min-height: 44px;
+        }
+
+        .theme-btn:hover, .theme-btn:active { background: var(--accent); color: #1a1a2e; }
+
+        /* ═══════════════════════════════════════
+           CHAT MAIN
+        ═══════════════════════════════════════ */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            min-width: 0;
+            /* Contain to prevent overflow */
+            overflow: hidden;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            padding-top: calc(12px + var(--safe-top));
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            flex-shrink: 0;
+            gap: 10px;
+        }
+
+        .menu-toggle {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .menu-toggle:active { background: var(--accent); color: #1a1a2e; }
+
+        .header-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .header-info h1 {
+            font-size: 1rem;
+            font-family: 'Playfair Display', serif;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .header-info p {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .voice-btn, .clear-chat {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-btn:active, .clear-chat:active { opacity: 0.7; transform: scale(0.93); }
+
+        /* ═══════════════════════════════════════
+           MESSAGES
+        ═══════════════════════════════════════ */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            max-width: 85%;
+            animation: slideIn 0.25s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+            align-self: flex-end;
+        }
+
+        .message.user .avatar { background: var(--accent); }
+        .message.bot  .avatar { background: var(--bot-bg); }
+
+        .message .content {
+            background: var(--bot-bg);
+            padding: 10px 14px;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            line-height: 1.55;
+            font-size: 0.85rem;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        .message.user .content {
+            background: var(--user-bg);
+            color: var(--user-text);
+            border-bottom-right-radius: 4px;
+            border-bottom-left-radius: 18px;
+        }
+
+        .message .content p { margin-bottom: 5px; }
+        .message .content ul,
+        .message .content ol { margin-left: 18px; margin-bottom: 5px; }
+        .message .content li { margin-bottom: 2px; }
+
+        .message-time {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            align-self: flex-end;
+            margin-top: 3px;
+            flex-shrink: 0;
+        }
+
+        /* ═══════════════════════════════════════
+           TYPING INDICATOR
+        ═══════════════════════════════════════ */
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--bot-bg);
+            width: fit-content;
+            border-radius: 20px;
+            margin: 0 16px 8px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .dots { display: flex; gap: 4px; }
+        .dots span {
+            width: 6px;
+            height: 6px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite;
+        }
+        .dots span:nth-child(2) { animation-delay: 0.2s; }
+        .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+
+        /* ═══════════════════════════════════════
+           QUICK SUGGESTIONS
+        ═══════════════════════════════════════ */
+        .quick-suggestions {
+            padding: 8px 16px;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            flex-shrink: 0;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .quick-suggestions::-webkit-scrollbar { display: none; }
+
+        .suggestion-chip {
+            padding: 8px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: var(--transition);
+            color: var(--text-primary);
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            font-family: inherit;
+        }
+
+        .suggestion-chip:active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #1a1a2e;
+            transform: scale(0.97);
+        }
+
+        /* ═══════════════════════════════════════
+           INPUT AREA
+        ═══════════════════════════════════════ */
+        .chat-input-container {
+            padding: 10px 16px;
+            padding-bottom: calc(10px + var(--safe-bottom));
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            flex-shrink: 0;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            padding: 4px 4px 4px 14px;
+            border: 1.5px solid var(--border-color);
+            transition: var(--transition);
+            align-items: flex-end;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(201,168,76,0.15);
+        }
+
+        .input-wrapper textarea {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 10px 0;
+            font-family: inherit;
+            /* iOS zoom prevention: input font >= 16px */
+            font-size: max(16px, 0.9rem);
+            resize: none;
+            outline: none;
+            color: var(--text-primary);
+            max-height: 120px;
+            line-height: 1.4;
+            -webkit-appearance: none;
+        }
+
+        .input-wrapper textarea::placeholder { color: var(--text-muted); }
+
+        .send-btn {
+            background: var(--accent);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            color: #1a1a2e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .send-btn:active { transform: scale(0.9); background: var(--accent-dark); }
+
+        .language-switch {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .lang-option {
+            background: none;
+            border: 1px solid var(--border-color);
+            padding: 5px 12px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            border-radius: 20px;
+            color: var(--text-muted);
+            transition: var(--transition);
+            font-family: inherit;
+            min-height: 30px;
+        }
+
+        .lang-option.active { background: var(--accent); color: #1a1a2e; border-color: var(--accent); font-weight: 600; }
+
+        /* ═══════════════════════════════════════
+           VOICE MODAL
+        ═══════════════════════════════════════ */
+        .voice-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .voice-modal-content {
+            background: var(--bg-primary);
+            padding: 36px 40px;
+            border-radius: 24px;
+            text-align: center;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .voice-wave {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .voice-wave span {
+            width: 6px;
+            background: var(--accent);
+            border-radius: 3px;
+            animation: wave 1s infinite;
+        }
+
+        .voice-wave span:nth-child(1) { height: 20px; }
+        .voice-wave span:nth-child(2) { height: 36px; animation-delay: 0.1s; }
+        .voice-wave span:nth-child(3) { height: 50px; animation-delay: 0.2s; }
+        .voice-wave span:nth-child(4) { height: 36px; animation-delay: 0.3s; }
+        .voice-wave span:nth-child(5) { height: 20px; animation-delay: 0.4s; }
+
+        @keyframes wave {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.4); }
+        }
+
+        #stopVoiceBtn {
+            margin-top: 20px;
+            padding: 12px 28px;
+            background: var(--error);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-family: inherit;
+            min-height: 44px;
+        }
+
+        #stopVoiceBtn:active { opacity: 0.8; }
+
+        /* ═══════════════════════════════════════
+           OVERLAY (mobile sidebar backdrop)
+        ═══════════════════════════════════════ */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 150;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .overlay.active { display: block; opacity: 1; }
+
+        /* ═══════════════════════════════════════
+           LOADING + TOAST
+        ═══════════════════════════════════════ */
+        .loading-spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .toast {
+            position: fixed;
+            bottom: calc(90px + var(--safe-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            color: #1a1a2e;
+            padding: 10px 20px;
+            border-radius: 30px;
+            z-index: 2000;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+            white-space: nowrap;
+            animation: toastIn 0.25s ease;
+            pointer-events: none;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        /* ═══════════════════════════════════════
+           SCROLLBARS
+        ═══════════════════════════════════════ */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+
+        /* ═══════════════════════════════════════
+           RESPONSIVE — TABLET (769–1024px)
+        ═══════════════════════════════════════ */
+        @media (max-width: 1024px) {
+            :root { --sidebar-w: 280px; }
+        }
+
+        /* ═══════════════════════════════════════
+           RESPONSIVE — MOBILE (≤768px)
+           Sidebar becomes a drawer
+        ═══════════════════════════════════════ */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100%;
+                height: 100dvh;
+                transform: translateX(-100%);
+                box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+                width: min(var(--sidebar-w), 85vw);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .message {
+                max-width: 92%;
+            }
+
+            .chat-messages {
+                padding: 12px;
+                gap: 12px;
+            }
+
+            .quick-suggestions {
+                padding: 8px 12px;
+            }
+
+            .chat-input-container {
+                padding: 8px 12px;
+                padding-bottom: calc(8px + var(--safe-bottom));
+            }
+
+            .chat-header {
+                padding: 10px 12px;
+                padding-top: calc(10px + var(--safe-top));
+            }
+
+            /* Larger text in messages on small screens */
+            .message .content {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* ═══════════════════════════════════════
+           RESPONSIVE — SMALL MOBILE (≤400px)
+        ═══════════════════════════════════════ */
+        @media (max-width: 400px) {
+            .header-info h1 { font-size: 0.9rem; }
+            .header-info p  { display: none; }
+
+            .voice-btn, .clear-chat {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .send-btn {
+                width: 40px;
+                height: 40px;
+            }
+
+            .message .content {
+                font-size: 0.88rem;
+                padding: 9px 12px;
+            }
+
+            .suggestion-chip {
+                font-size: 0.72rem;
+                padding: 7px 11px;
+            }
+        }
+
+        /* ═══════════════════════════════════════
+           LANDSCAPE MOBILE
+        ═══════════════════════════════════════ */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .chat-header { padding-top: 6px; padding-bottom: 6px; }
+            .quick-suggestions { display: none; }
+            .chat-input-container { padding-top: 6px; padding-bottom: 6px; }
+            .chat-messages { padding: 8px 12px; gap: 8px; }
+            .input-wrapper textarea { max-height: 60px; }
+        }
+
+        /* Focus visible styles for accessibility */
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+<div class="overlay" id="overlay"></div>
+<div class="app-container">
+
+    <!-- ── SIDEBAR ────────────────────────── -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Список музеев">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">🏛️</span>
+                <span class="logo-text">AI Museum</span>
+            </div>
+            <button class="close-sidebar" id="closeSidebar" aria-label="Закрыть панель">✕</button>
+        </div>
+
+        <div class="search-section">
+            <h3>🔍 Поиск музеев</h3>
+            <div class="search-box">
+                <input type="search" id="searchInput" placeholder="Название или город..."
+                       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                       aria-label="Поиск музея">
+                <button id="searchBtn" aria-label="Найти">Найти</button>
+            </div>
+            <div class="city-filters" id="cityFilters" role="group" aria-label="Фильтр по городу">
+                <button class="city-filter active" data-city="">Все</button>
+                <button class="city-filter" data-city="Астана">Астана</button>
+                <button class="city-filter" data-city="Алматы">Алматы</button>
+                <button class="city-filter" data-city="Шымкент">Шымкент</button>
+                <button class="city-filter" data-city="Туркестан">Туркестан</button>
+                <button class="city-filter" data-city="Семей">Семей</button>
+                <button class="city-filter" data-city="Павлодар">Павлодар</button>
+                <button class="city-filter" data-city="Атырау">Атырау</button>
+                <button class="city-filter" data-city="Кокшетау">Кокшетау</button>
+            </div>
+        </div>
+
+        <div class="museum-list" id="museumList" role="list">
+            <div class="loading-spinner"></div>
+        </div>
+
+        <div class="favorites-section">
+            <h3>⭐ Избранное</h3>
+            <div id="favoritesList" class="favorites-list" role="list"></div>
+        </div>
+
+        <div class="theme-toggle">
+            <button id="themeToggleBtn" class="theme-btn">🌙 Тёмная тема</button>
+        </div>
+    </aside>
+
+    <!-- ── CHAT MAIN ──────────────────────── -->
+    <main class="chat-main" role="main">
+        <header class="chat-header">
+            <button class="menu-toggle" id="menuToggle" aria-label="Открыть меню" aria-expanded="false">☰</button>
+            <div class="header-info">
+                <h1>🤖 AI Museum Assistant</h1>
+                <p>Виртуальный гид по музеям Казахстана</p>
+            </div>
+            <div class="header-actions">
+                <button class="voice-btn" id="voiceBtn" title="Голосовой ввод" aria-label="Голосовой ввод">🎤</button>
+                <button class="clear-chat" id="clearChat" title="Очистить чат" aria-label="Очистить чат">🗑️</button>
+            </div>
+        </header>
+
+        <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-label="Сообщения">
+            <div class="message bot">
+                <div class="avatar">🤖</div>
+                <div class="content">
+                    <p>👋 <strong>Қош келдіңіз! / Добро пожаловать!</strong></p>
+                    <p>Я AI-помощник по музеям Казахстана. Вот что я умею:</p>
+                    <ul>
+                        <li>🏛️ <strong>Найти музеи</strong> — в любом городе</li>
+                        <li>🕐 <strong>Расписание и адреса</strong></li>
+                        <li>🎟️ <strong>Стоимость билетов</strong></li>
+                        <li>🏺 <strong>Описание экспонатов</strong></li>
+                        <li>⭐ <strong>Рекомендации</strong></li>
+                    </ul>
+                    <p>Просто спросите меня о любом музее Казахстана! 🇰🇿</p>
+                </div>
+                <div class="message-time">Сейчас</div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator" aria-live="polite">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <span>AI думает...</span>
+        </div>
+
+        <div class="quick-suggestions" id="quickSuggestions" role="group" aria-label="Быстрые вопросы">
+            <button class="suggestion-chip" data-query="Найди музеи в Туркестане">🕌 Туркестан</button>
+            <button class="suggestion-chip" data-query="Расскажи о Национальном музее в Астане">🇰🇿 Нац. музей</button>
+            <button class="suggestion-chip" data-query="Найди музеи в Семее">📜 Музеи Семея</button>
+            <button class="suggestion-chip" data-query="Расскажи интересные факты о музеях Казахстана">💡 Факты</button>
+            <button class="suggestion-chip" data-query="Сколько стоят билеты в музей?">🎟️ Цена билетов</button>
+            <button class="suggestion-chip" data-query="Рекомендуй интересные музеи">⭐ Рекомендации</button>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="input-wrapper">
+                <textarea id="messageInput" placeholder="Напишите сообщение..." rows="1"
+                          aria-label="Введите сообщение" autocomplete="off"></textarea>
+                <button id="sendBtn" class="send-btn" aria-label="Отправить">➤</button>
+            </div>
+            <div class="language-switch" role="group" aria-label="Выбор языка">
+                <button class="lang-option active" data-lang="ru">РУС</button>
+                <button class="lang-option" data-lang="kz">ҚАЗ</button>
+                <button class="lang-option" data-lang="en">ENG</button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ── VOICE MODAL ──────────────────── -->
+<div class="voice-modal" id="voiceModal" role="dialog" aria-modal="true" aria-label="Голосовой ввод">
+    <div class="voice-modal-content">
+        <div class="voice-wave">
+            <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <p style="font-size:1rem;margin-bottom:4px;">🎙️ Говорите...</p>
+        <p style="font-size:0.75rem;color:var(--text-muted)">Распознавание речи</p>
+        <button id="stopVoiceBtn">Отмена</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ─────────────────────────────────────────
+       DATA
+    ───────────────────────────────────────── */
+    const MUSEUMS_DB = [
+        {
+            id: 1,
+            name: { ru: "Акмолинский областной историко-краеведческий музей", kz: "Ақмола облыстық тарихи-өлкетану музейі", en: "Akmola Regional Museum" },
+            city: "Кокшетау", city_kz: "Көкшетау",
+            description: { ru: "Крупнейший музей Акмолинской области, основан в 1958 году. Более 50 000 экспонатов.", kz: "Ақмола облысының ең ірі музейі, 1958 жылы құрылған. 50 000-нан астам экспонат.", en: "The largest museum of Akmola region, founded in 1958. Over 50,000 exhibits." },
+            schedule: { mon: "Выходной", tue_fri: "09:00–18:00", sat: "10:00–17:00", sun: "10:00–16:00" },
+            address: { ru: "ул. Абылай хана, 61, Кокшетау", kz: "Абылай хан көшесі, 61, Көкшетау", en: "61 Ablai Khan St, Kokshetau" },
+            coordinates: { lat: 53.2838, lng: 69.3948 },
+            phone: "+7 (716-2) 25-53-81",
+            website: "museum.akmo.gov.kz",
+            ticketPrice: { adult: "800 ₸", student: "400 ₸", child: "Бесплатно" },
+            exhibits: ["Бронзовый котёл", "Золотой торк", "Сабля батыра", "Юрта", "Трактор ДТ-54"]
+        },
+        {
+            id: 2,
+            name: { ru: "Национальный музей Республики Казахстан", kz: "Қазақстан Республикасының Ұлттық музейі", en: "National Museum of Kazakhstan" },
+            city: "Астана", city_kz: "Астана",
+            description: { ru: "Крупнейший музей Центральной Азии, открыт в 2014 году. Площадь 74 000 м².", kz: "Орталық Азиядағы ең ірі музей, 2014 жылы ашылған.", en: "The largest museum in Central Asia, opened in 2014." },
+            schedule: { mon: "Выходной", tue_sun: "10:00–18:00" },
+            address: { ru: "пр. Тәуелсіздік, 54, Астана", kz: "Тәуелсіздік даңғылы, 54, Астана", en: "54 Tauelsizdik Ave, Astana" },
+            coordinates: { lat: 51.1162, lng: 71.4707 },
+            phone: "+7 (7172) 91-92-12",
+            website: "nationalmuseum.kz",
+            ticketPrice: { adult: "1000 ₸", student: "500 ₸", child: "Бесплатно" },
+            exhibits: ["Золотой человек", "Древняя керамика", "Оружие кочевников", "Национальные костюмы", "Сакские артефакты"]
+        },
+        {
+            id: 3,
+            name: { ru: "Центральный государственный музей РК", kz: "ҚР Орталық мемлекеттік музейі", en: "Central State Museum of Kazakhstan" },
+            city: "Алматы", city_kz: "Алматы",
+            description: { ru: "Один из старейших музеев, основан в 1931 году. Более 300 000 экспонатов.", kz: "Ең көне музейлердің бірі, 1931 жылы құрылған. 300 000 экспонат.", en: "One of the oldest museums, founded in 1931. Over 300,000 exhibits." },
+            schedule: { mon: "Выходной", tue_sun: "10:00–18:00" },
+            address: { ru: "мкр. Самал-1, 44, Алматы", kz: "Самал-1 шағын ауданы, 44, Алматы", en: "44 Samal-1, Almaty" },
+            coordinates: { lat: 43.2383, lng: 76.9465 },
+            phone: "+7 (727) 264-21-16",
+            website: "csmrk.kz",
+            ticketPrice: { adult: "500 ₸", student: "250 ₸", child: "Бесплатно" },
+            exhibits: ["Золотые украшения саков", "Казахское оружие", "Народные инструменты", "Ковры", "Картины"]
+        },
+        {
+            id: 4,
+            name: { ru: "Музей искусств им. А. Кастеева", kz: "Ә. Қастеев атындағы өнер музейі", en: "A. Kasteev State Museum of Arts" },
+            city: "Алматы", city_kz: "Алматы",
+            description: { ru: "Крупнейший художественный музей Казахстана, более 25 000 произведений искусства.", kz: "Қазақстанның ең ірі көркемсурет музейі, 25 000 туынды.", en: "Largest art museum in Kazakhstan, over 25,000 artworks." },
+            schedule: { mon: "Выходной", tue_sun: "10:00–18:00" },
+            address: { ru: "ул. Сатпаева, 30А, Алматы", kz: "Сәтбаев көшесі, 30А, Алматы", en: "30A Satpayev St, Almaty" },
+            coordinates: { lat: 43.2371, lng: 76.9307 },
+            phone: "+7 (727) 272-13-20",
+            website: "gmusar.kz",
+            ticketPrice: { adult: "500 ₸", student: "250 ₸", child: "Бесплатно" },
+            exhibits: ["Картины А. Кастеева", "Русское искусство", "Европейская живопись", "Современное искусство", "Графика"]
+        },
+        {
+            id: 5,
+            name: { ru: "Музей первого президента РК", kz: "ҚР Тұңғыш Президентінің музейі", en: "Museum of the First President" },
+            city: "Астана", city_kz: "Астана",
+            description: { ru: "Музей, посвящённый жизни и деятельности Нурсултана Назарбаева. Более 5 000 экспонатов, документы, государственные награды и подарки от мировых лидеров.", kz: "Нұрсұлтан Назарбаевтың өмірі мен қызметіне арналған музей. 5 000-нан астам экспонат.", en: "Museum dedicated to Nursultan Nazarbayev. Over 5,000 exhibits, documents, state awards and gifts from world leaders." },
+            schedule: { mon: "Выходной", tue_sun: "10:00–18:00" },
+            address: { ru: "пр. Бейбітшілік, 11, Астана", kz: "Бейбітшілік даңғылы, 11, Астана", en: "11 Beybitshilik Ave, Astana" },
+            coordinates: { lat: 51.1362, lng: 71.4240 },
+            phone: "+7 (7172) 75-13-33",
+            website: "fmuseum.kz",
+            ticketPrice: { adult: "700 ₸", student: "350 ₸", child: "Бесплатно" },
+            exhibits: ["Личные вещи", "Подарки от мировых лидеров", "Фотографии", "Государственные документы", "Награды"],
+            fact: "В музее хранится точная копия трона казахских ханов XIX века."
+        },
+        {
+            id: 6,
+            name: { ru: "Южно-Казахстанский областной историко-краеведческий музей", kz: "Оңтүстік Қазақстан облыстық тарихи-өлкетану музейі", en: "South Kazakhstan Regional Museum" },
+            city: "Шымкент", city_kz: "Шымкент",
+            description: { ru: "Один из крупнейших музеев юга Казахстана. Основан в 1929 году. Более 130 000 экспонатов, охватывающих историю от эпохи бронзы до наших дней.", kz: "Оңтүстік Қазақстанның ірі музейлерінің бірі. 1929 жылы ашылған. 130 000-нан астам экспонат.", en: "One of the largest museums in southern Kazakhstan. Founded in 1929. Over 130,000 exhibits." },
+            schedule: { mon: "Выходной", tue_fri: "09:00–18:00", sat_sun: "10:00–17:00" },
+            address: { ru: "пр. Байдибек би, 54, Шымкент", kz: "Байдібек би даңғылы, 54, Шымкент", en: "54 Baidibek bi Ave, Shymkent" },
+            coordinates: { lat: 42.3015, lng: 69.5960 },
+            phone: "+7 (725-2) 53-05-80",
+            website: "shymkentmuseum.kz",
+            ticketPrice: { adult: "600 ₸", student: "300 ₸", child: "Бесплатно" },
+            exhibits: ["Наскальные рисунки", "Средневековое оружие", "Монеты Шёлкового пути", "Ювелирные украшения", "Этнографические коллекции"],
+            fact: "Шымкент расположен на Великом шёлковом пути — в музее хранится уникальная коллекция монет и артефактов торговцев из Китая, Ирана и Рима."
+        },
+        {
+            id: 7,
+            name: { ru: "Государственный историко-культурный музей-заповедник «Туркестан»", kz: "«Түркістан» мемлекеттік тарихи-мәдени музей-қорығы", en: "Turkestan State Historical-Cultural Museum-Reserve" },
+            city: "Туркестан", city_kz: "Түркістан",
+            description: { ru: "Музей-заповедник при мавзолее Ходжи Ахмета Ясави — объекте Всемирного наследия ЮНЕСКО. Туркестан был духовной столицей тюркских народов более 500 лет.", kz: "ЮНЕСКО-ның Дүниежүзілік мұра тізіміне енген Қожа Ахмет Ясауи кесенесіндегі музей-қорық.", en: "Museum-reserve at the mausoleum of Khoja Ahmed Yasawi — a UNESCO World Heritage Site. Turkestan was the spiritual capital of Turkic peoples for over 500 years." },
+            schedule: { mon: "Выходной", tue_sun: "09:00–18:00" },
+            address: { ru: "ул. Тауке хана, 5, Туркестан", kz: "Тәуке хан көшесі, 5, Түркістан", en: "5 Tauke khan St, Turkestan" },
+            coordinates: { lat: 43.2979, lng: 68.2754 },
+            phone: "+7 (725-33) 4-10-22",
+            website: "turkistandmuseum.kz",
+            ticketPrice: { adult: "1500 ₸", student: "750 ₸", child: "500 ₸" },
+            exhibits: ["Мавзолей Ясави (XIV в.)", "Древние рукописи", "Средневековая керамика", "Изразцы с синей глазурью", "Некрополь Хазрет-Султан"],
+            fact: "Мавзолей Ходжи Ахмета Ясави был начат по приказу Тамерлана в 1389 году и так и не был достроен — строители оставили леса как знак незавершённости в честь великого святого."
+        },
+        {
+            id: 8,
+            name: { ru: "Историко-краеведческий музей Семея", kz: "Семей тарихи-өлкетану музейі", en: "Semipalatinsk Regional Museum" },
+            city: "Семей", city_kz: "Семей",
+            description: { ru: "Основан в 1883 году — один из старейших музеев Казахстана. В городе жил великий поэт Абай Кунанбаев, и музей хранит уникальные экспонаты об его жизни и эпохе.", kz: "1883 жылы құрылған — Қазақстандағы ең көне музейлердің бірі. Ұлы ақын Абай Құнанбаевтың мұрасы.", en: "Founded in 1883 — one of the oldest museums in Kazakhstan. The city was home to great poet Abay Kunanbayev." },
+            schedule: { mon: "Выходной", tue_sun: "10:00–17:30" },
+            address: { ru: "ул. Дулатова, 66, Семей", kz: "Дулатов көшесі, 66, Семей", en: "66 Dulatov St, Semey" },
+            coordinates: { lat: 50.4110, lng: 80.2275 },
+            phone: "+7 (722-2) 56-18-71",
+            website: "semeymuseum.kz",
+            ticketPrice: { adult: "500 ₸", student: "250 ₸", child: "Бесплатно" },
+            exhibits: ["Рукописи Абая", "Ядерная история региона", "Флора и фауна Прииртышья", "Этнография казахов", "Коллекция монет"],
+            fact: "Семей (Семипалатинск) — место трагедии: с 1949 по 1989 год на Семипалатинском ядерном полигоне было проведено более 450 ядерных испытаний. В городе действует уникальный музей, посвящённый этой теме."
+        },
+        {
+            id: 9,
+            name: { ru: "Дом-музей Абая", kz: "Абайдың үй-мұражайы", en: "Abay House Museum" },
+            city: "Семей", city_kz: "Семей",
+            description: { ru: "Мемориальный музей в доме, где жил великий казахский поэт, мыслитель и просветитель Абай Кунанбаев. Подлинные вещи поэта, его рукописи и личная библиотека.", kz: "Ұлы қазақ ақыны Абай Құнанбаевтың тұрған үйіндегі мемориалдық музей.", en: "Memorial museum in the house where the great Kazakh poet and enlightener Abay Kunanbayev lived." },
+            schedule: { mon: "Выходной", tue_sun: "10:00–18:00" },
+            address: { ru: "ул. Абая, 112, Семей", kz: "Абай көшесі, 112, Семей", en: "112 Abay St, Semey" },
+            coordinates: { lat: 50.4067, lng: 80.2344 },
+            phone: "+7 (722-2) 52-29-40",
+            website: "abaymuseum.kz",
+            ticketPrice: { adult: "400 ₸", student: "200 ₸", child: "Бесплатно" },
+            exhibits: ["Личные вещи Абая", "Рукописи стихов", "Домбра поэта", "Прижизненные издания", "Портреты"],
+            fact: "Абай Кунанбаев (1845–1904) перевёл на казахский язык произведения Пушкина, Лермонтова и Гёте, открыв казахам европейскую литературу. Его поэма «Слова назидания» входит в культурное наследие ЮНЕСКО."
+        },
+        {
+            id: 10,
+            name: { ru: "Павлодарский областной историко-краеведческий музей им. Г. Потанина", kz: "Г. Потанин атындағы Павлодар облыстық тарихи-өлкетану музейі", en: "Pavlodar Regional Museum named after G. Potanin" },
+            city: "Павлодар", city_kz: "Павлодар",
+            description: { ru: "Основан в 1942 году. Богатейшая коллекция по истории Иртышского Прииртышья. Более 100 000 экспонатов: от мамонтовой фауны до современности.", kz: "1942 жылы құрылған. Ертіс өңірінің тарихы бойынша бай коллекция. 100 000-нан астам экспонат.", en: "Founded in 1942. Rich collection on the history of the Irtysh region. Over 100,000 exhibits." },
+            schedule: { mon: "Выходной", tue_sun: "10:00–18:00" },
+            address: { ru: "ул. Академика Сатпаева, 2, Павлодар", kz: "Академик Сәтбаев көшесі, 2, Павлодар", en: "2 Academician Satpayev St, Pavlodar" },
+            coordinates: { lat: 52.2875, lng: 76.9674 },
+            phone: "+7 (718-2) 32-01-01",
+            website: "pavlodarmuseum.kz",
+            ticketPrice: { adult: "600 ₸", student: "300 ₸", child: "Бесплатно" },
+            exhibits: ["Скелет мамонта", "Стоянки бронзового века", "Казахские юрты", "Природа Прииртышья", "Советский период"],
+            fact: "В окрестностях Павлодара найдены останки степных мамонтов возрастом более 30 000 лет. Скелет одного из них — главный экспонат музея."
+        },
+        {
+            id: 11,
+            name: { ru: "Атырауский областной историко-краеведческий музей", kz: "Атырау облыстық тарихи-өлкетану музейі", en: "Atyrau Regional Historical Museum" },
+            city: "Атырау", city_kz: "Атырау",
+            description: { ru: "Музей расположен в городе, стоящем на границе Европы и Азии. Уникальные экспонаты о Золотой Орде, рыболовстве на Каспии и нефтяной промышленности.", kz: "Еуропа мен Азия шекарасындағы қалада орналасқан музей. Алтын Орда, Каспий балық аулау және мұнай өнеркәсібі туралы ерекше экспонаттар.", en: "Museum located in the city on the border of Europe and Asia. Unique exhibits about the Golden Horde, Caspian fishing, and oil industry." },
+            schedule: { mon: "Выходной", tue_sun: "09:30–18:00" },
+            address: { ru: "ул. Азаттык, 33, Атырау", kz: "Азаттық даңғылы, 33, Атырау", en: "33 Azattyk Ave, Atyrau" },
+            coordinates: { lat: 47.1059, lng: 51.9102 },
+            phone: "+7 (712-2) 27-78-06",
+            website: "atyraumuseum.kz",
+            ticketPrice: { adult: "500 ₸", student: "250 ₸", child: "Бесплатно" },
+            exhibits: ["Артефакты Золотой Орды", "История нефтедобычи", "Каспийские осетры", "Сарматские украшения", "Карты Великой степи"],
+            fact: "Атырау стоит одновременно в Европе и Азии — река Урал (Жайык) делит город на две части разных континентов. Это единственный город в мире с таким делением."
+        },
+        {
+            id: 12,
+            name: { ru: "Государственный музей золота и драгоценных металлов", kz: "Алтын және бағалы металдар мемлекеттік музейі", en: "State Museum of Gold and Precious Metals" },
+            city: "Астана", city_kz: "Астана",
+            description: { ru: "Уникальный музей, посвящённый золоту и драгоценным металлам Казахстана. Хранит копии «Золотого человека» и древние ювелирные изделия степных цивилизаций.", kz: "Қазақстанның алтыны мен бағалы металдарына арналған ерекше музей. «Алтын адамның» көшірмесі.", en: "Unique museum dedicated to Kazakhstan's gold and precious metals. Houses replicas of the Golden Man." },
+            schedule: { mon: "Выходной", tue_sat: "10:00–18:00", sun: "10:00–16:00" },
+            address: { ru: "ул. Сарыарқа, 44, Астана", kz: "Сарыарқа даңғылы, 44, Астана", en: "44 Saryarka Ave, Astana" },
+            coordinates: { lat: 51.1800, lng: 71.4460 },
+            phone: "+7 (7172) 32-85-24",
+            website: "goldmuseum.kz",
+            ticketPrice: { adult: "1200 ₸", student: "600 ₸", child: "300 ₸" },
+            exhibits: ["Копия Золотого человека", "Сакские украшения", "Золото Скифов", "Ювелирное искусство", "Слитки и монеты"],
+            fact: "«Золотой человек» из кургана Иссык (IV–III вв. до н.э.) был покрыт более чем 4 000 золотыми деталями. Его шлем украшен изображением снежного барса — символа, ставшего гербом Казахстана."
+        },
+        {
+            id: 13,
+            name: { ru: "Алматинский музей истории города", kz: "Алматы қаласы тарихының музейі", en: "Almaty City History Museum" },
+            city: "Алматы", city_kz: "Алматы",
+            description: { ru: "Музей рассказывает об истории Алматы от древних поселений до современного мегаполиса. Редкие фотографии, карты и предметы быта XIX–XX веков.", kz: "Алматының ежелгі қоныстардан қазіргі мегаполиске дейінгі тарихы туралы музей.", en: "The museum tells the history of Almaty from ancient settlements to the modern metropolis." },
+            schedule: { mon: "Выходной", tue_sun: "10:00–18:00" },
+            address: { ru: "ул. Желтоқсан, 128, Алматы", kz: "Желтоқсан көшесі, 128, Алматы", en: "128 Zheltoqsan St, Almaty" },
+            coordinates: { lat: 43.2419, lng: 76.9195 },
+            phone: "+7 (727) 267-22-34",
+            website: "almatymuseum.kz",
+            ticketPrice: { adult: "600 ₸", student: "300 ₸", child: "Бесплатно" },
+            exhibits: ["Фотографии XIX века", "Карты Верного", "Советский Алматы", "Декабрьские события 1986 г.", "Современный город"],
+            fact: "Алматы до 1921 года назывался Верный. Город был почти полностью разрушен землетрясением в 1887 году, но отстроен заново — именно тогда появилась уникальная сейсмостойкая архитектура из ели."
+        },
+        {
+            id: 14,
+            name: { ru: "Музей природы при Институте зоологии", kz: "Зоология институтындағы табиғат музейі", en: "Nature Museum at the Institute of Zoology" },
+            city: "Алматы", city_kz: "Алматы",
+            description: { ru: "Научный музей с богатейшей коллекцией флоры и фауны Казахстана. Чучела снежного барса, архара и других редких животных Центральной Азии.", kz: "Қазақстанның флорасы мен фаунасының бай коллекциясы бар ғылыми музей.", en: "Scientific museum with a rich collection of Kazakhstan's flora and fauna. Specimens of snow leopard, argali, and other rare Central Asian animals." },
+            schedule: { mon_fri: "09:00–17:00", sat_sun: "Выходной" },
+            address: { ru: "ул. Аль-Фараби, 93, Алматы", kz: "Әл-Фараби даңғылы, 93, Алматы", en: "93 Al-Farabi Ave, Almaty" },
+            coordinates: { lat: 43.2200, lng: 76.8960 },
+            phone: "+7 (727) 269-41-34",
+            website: "zoolkaz.kz",
+            ticketPrice: { adult: "300 ₸", student: "150 ₸", child: "Бесплатно" },
+            exhibits: ["Снежный барс", "Каспийский тигр (вымерший)", "Архар Марко Поло", "Степной орёл", "Коллекция насекомых"],
+            fact: "Каспийский тигр — крупнейший тигр в мире — обитал в Казахстане ещё в XX веке. Последний был убит в 1948 году. Музей хранит одно из немногих чучел этого вымершего подвида."
+        },
+        {
+            id: 15,
+            name: { ru: "Музей жертв политических репрессий «АЛЖИР»", kz: "«АЛЖИР» саяси қуғын-сүргін құрбандарының музейі", en: "ALZHIR Museum of Political Repression Victims" },
+            city: "Астана", city_kz: "Астана",
+            description: { ru: "Мемориальный музей в посёлке Акмол, на месте лагеря АЛЖИР (Акмолинский лагерь жён изменников Родины). Здесь в 1937–1953 годах содержались тысячи женщин.", kz: "Ақмол ауылындағы АЛЖИР лагерінің орнындағы мемориалдық музей. 1937–1953 жылдары мыңдаған əйелдер ұсталған.", en: "Memorial museum at ALZHIR camp site (Akmola Camp for Wives of Traitors to the Motherland). Thousands of women were held here in 1937–1953." },
+            schedule: { mon: "Выходной", tue_sun: "09:00–18:00" },
+            address: { ru: "пос. Акмол, 45 км от Астаны", kz: "Ақмол ауылы, Астанадан 45 км", en: "Akmol village, 45 km from Astana" },
+            coordinates: { lat: 51.5200, lng: 71.0400 },
+            phone: "+7 (7172) 79-77-95",
+            website: "alzhir.kz",
+            ticketPrice: { adult: "500 ₸", student: "250 ₸", child: "Бесплатно" },
+            exhibits: ["Личные вещи узниц", "Фотографии", "Документы НКВД", "Вышивки и рукоделие", "Мемориальная стена"],
+            fact: "В лагере АЛЖИР содержались жёны «врагов народа» — среди них жёны выдающихся деятелей Казахстана. Их дети часто не знали о судьбе матерей десятилетиями."
+        }
+    ];
+
+    /* ─────────────────────────────────────────
+       STATE
+    ───────────────────────────────────────── */
+    let currentLanguage = 'ru';
+    let currentMuseums  = [...MUSEUMS_DB];
+    let favorites       = JSON.parse(localStorage.getItem('favorites') || '[]');
+    let chatHistory     = [];
+    let currentRecognition = null;
+    let sidebarOpen = false;
+
+    /* ─────────────────────────────────────────
+       ELEMENTS
+    ───────────────────────────────────────── */
+    const sidebar         = document.getElementById('sidebar');
+    const overlay         = document.getElementById('overlay');
+    const museumListDiv   = document.getElementById('museumList');
+    const favoritesListDiv = document.getElementById('favoritesList');
+    const chatMessagesDiv = document.getElementById('chatMessages');
+    const messageInput    = document.getElementById('messageInput');
+    const sendBtn         = document.getElementById('sendBtn');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const searchInput     = document.getElementById('searchInput');
+    const searchBtn       = document.getElementById('searchBtn');
+    const themeToggleBtn  = document.getElementById('themeToggleBtn');
+    const voiceBtn        = document.getElementById('voiceBtn');
+    const clearChatBtn    = document.getElementById('clearChat');
+    const menuToggle      = document.getElementById('menuToggle');
+    const closeSidebarBtn = document.getElementById('closeSidebar');
+    const voiceModal      = document.getElementById('voiceModal');
+    const stopVoiceBtn    = document.getElementById('stopVoiceBtn');
+
+    /* ─────────────────────────────────────────
+       UTILITIES
+    ───────────────────────────────────────── */
+    function showToast(msg) {
+        document.querySelectorAll('.toast').forEach(t => t.remove());
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2200);
+    }
+
+    function formatMessage(content) {
+        return content
+            .replace(/\n/g, '<br>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/\[(.*?)\]\((.*?)\)/g,
+                '<a href="$2" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline">$1</a>');
+    }
+
+    function getLang(obj) {
+        return obj[currentLanguage] || obj.ru || Object.values(obj)[0];
+    }
+
+    function getScheduleText(schedule) {
+        if (typeof schedule === 'string') return schedule;
+        return schedule.tue_fri || schedule.tue_sun || '10:00–18:00';
+    }
+
+    /* ─────────────────────────────────────────
+       SIDEBAR TOGGLE
+    ───────────────────────────────────────── */
+    function openSidebar() {
+        sidebarOpen = true;
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+        menuToggle.setAttribute('aria-expanded', 'true');
+        // Prevent body scroll on mobile
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+        sidebarOpen = false;
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        menuToggle.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+    }
+
+    function toggleSidebar() {
+        sidebarOpen ? closeSidebar() : openSidebar();
+    }
+
+    /* ─────────────────────────────────────────
+       CHAT
+    ───────────────────────────────────────── */
+    function addMessage(role, content) {
+        const div  = document.createElement('div');
+        div.className = `message ${role}`;
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        div.innerHTML = `
+            <div class="avatar" aria-hidden="true">${role === 'user' ? '👤' : '🤖'}</div>
+            <div class="content">${formatMessage(content)}</div>
+            <div class="message-time">${time}</div>
+        `;
+        chatMessagesDiv.appendChild(div);
+        // Smooth scroll to bottom
+        chatMessagesDiv.scrollTo({ top: chatMessagesDiv.scrollHeight, behavior: 'smooth' });
+        chatHistory.push({ role, content, time });
+        saveChatHistory();
+    }
+
+    function saveChatHistory() {
+        try {
+            localStorage.setItem('chatHistory', JSON.stringify(chatHistory.slice(-50)));
+        } catch (e) {}
+    }
+
+    function loadChatHistory() {
+        try {
+            const saved = localStorage.getItem('chatHistory');
+            if (!saved) return;
+            const h = JSON.parse(saved);
+            chatHistory = h;
+            chatMessagesDiv.innerHTML = '';
+            h.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = `message ${msg.role}`;
+                div.innerHTML = `
+                    <div class="avatar" aria-hidden="true">${msg.role === 'user' ? '👤' : '🤖'}</div>
+                    <div class="content">${formatMessage(msg.content)}</div>
+                    <div class="message-time">${msg.time}</div>
+                `;
+                chatMessagesDiv.appendChild(div);
+            });
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+        } catch (e) {}
+    }
+
+    function clearChatHistory() {
+        chatHistory = [];
+        try { localStorage.removeItem('chatHistory'); } catch (e) {}
+        chatMessagesDiv.innerHTML = `
+            <div class="message bot">
+                <div class="avatar">🤖</div>
+                <div class="content"><p>👋 История очищена! Чем могу помочь?</p></div>
+                <div class="message-time">Сейчас</div>
+            </div>`;
+        showToast('🗑️ История чата очищена');
+    }
+
+    /* ─────────────────────────────────────────
+       MUSEUM RENDERING
+    ───────────────────────────────────────── */
+    function renderMuseums(arr) {
+        arr = arr || currentMuseums;
+        if (!arr.length) {
+            museumListDiv.innerHTML = '<p style="padding:20px;text-align:center;color:var(--text-muted)">Музеи не найдены</p>';
+            return;
+        }
+        museumListDiv.innerHTML = arr.map(m => `
+            <div class="museum-card" role="listitem" data-id="${m.id}" tabindex="0">
+                <button class="favorite-btn ${favorites.includes(m.id) ? 'active' : ''}"
+                        data-id="${m.id}"
+                        aria-label="${favorites.includes(m.id) ? 'Убрать из избранного' : 'Добавить в избранное'}">
+                    ${favorites.includes(m.id) ? '★' : '☆'}
+                </button>
+                <h4>${getLang(m.name)}</h4>
+                <div class="museum-city">📍 ${m.city}</div>
+                <div class="museum-address">📌 ${getLang(m.address)}</div>
+                <div class="museum-schedule">🕐 ${getScheduleText(m.schedule)}</div>
+                ${m.fact ? `<div style="margin-top:6px;font-size:0.68rem;color:var(--accent);line-height:1.3;padding-right:4px">💡 ${m.fact.length > 80 ? m.fact.substring(0,80)+'…' : m.fact}</div>` : ''}
+            </div>
+        `).join('');
+
+        museumListDiv.querySelectorAll('.museum-card').forEach(card => {
+            const id = parseInt(card.dataset.id);
+            const mu = arr.find(m => m.id === id);
+
+            card.addEventListener('click', e => {
+                if (!e.target.classList.contains('favorite-btn') && !e.target.closest('.favorite-btn')) {
+                    if (mu) {
+                        messageInput.value = `Расскажи подробнее о музее ${getLang(mu.name)}`;
+                        sendMessage();
+                        if (window.innerWidth <= 768) closeSidebar();
+                    }
+                }
+            });
+
+            // Keyboard support
+            card.addEventListener('keydown', e => {
+                if (e.key === 'Enter') card.click();
+            });
+
+            const favBtn = card.querySelector('.favorite-btn');
+            favBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                toggleFavorite(parseInt(favBtn.dataset.id));
+            });
+        });
+    }
+
+    function renderFavorites() {
+        const fav = MUSEUMS_DB.filter(m => favorites.includes(m.id));
+        if (!fav.length) {
+            favoritesListDiv.innerHTML = '<p style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:4px">⭐ Добавьте музеи в избранное</p>';
+            return;
+        }
+        favoritesListDiv.innerHTML = fav.map(m => `
+            <div class="favorite-item" role="listitem" data-id="${m.id}" tabindex="0">
+                <span>🏛️ ${getLang(m.name)}</span>
+                <button class="remove-fav" data-id="${m.id}" aria-label="Удалить из избранного">✕</button>
+            </div>
+        `).join('');
+
+        favoritesListDiv.querySelectorAll('.favorite-item').forEach(item => {
+            const id = parseInt(item.dataset.id);
+            const mu = MUSEUMS_DB.find(m => m.id === id);
+            item.addEventListener('click', e => {
+                if (!e.target.classList.contains('remove-fav')) {
+                    if (mu) {
+                        messageInput.value = `Расскажи о музее ${getLang(mu.name)}`;
+                        sendMessage();
+                    }
+                }
+            });
+            item.querySelector('.remove-fav').addEventListener('click', e => {
+                e.stopPropagation();
+                toggleFavorite(id);
+            });
+        });
+    }
+
+    function toggleFavorite(id) {
+        if (favorites.includes(id)) {
+            favorites = favorites.filter(f => f !== id);
+            showToast('❌ Удалено из избранного');
+        } else {
+            favorites.push(id);
+            showToast('✅ Добавлено в избранное');
+        }
+        try { localStorage.setItem('favorites', JSON.stringify(favorites)); } catch (e) {}
+        renderMuseums();
+        renderFavorites();
+    }
+
+    /* ─────────────────────────────────────────
+       SEARCH & FILTER
+    ───────────────────────────────────────── */
+    function searchMuseums() {
+        const q = searchInput.value.toLowerCase().trim();
+        if (!q) {
+            currentMuseums = [...MUSEUMS_DB];
+        } else {
+            currentMuseums = MUSEUMS_DB.filter(m =>
+                getLang(m.name).toLowerCase().includes(q) ||
+                m.city.toLowerCase().includes(q) ||
+                (m.city_kz && m.city_kz.toLowerCase().includes(q))
+            );
+        }
+        renderMuseums();
+    }
+
+    function filterByCity(city) {
+        if (!city) {
+            currentMuseums = [...MUSEUMS_DB];
+        } else {
+            currentMuseums = MUSEUMS_DB.filter(m => m.city === city || m.city_kz === city);
+        }
+        renderMuseums();
+    }
+
+    /* ─────────────────────────────────────────
+       AI RESPONSE
+    ───────────────────────────────────────── */
+    function findMuseumsInText(txt) {
+        const cityMap = {
+            'астана': 'Астана', 'astana': 'Астана', 'нур-султан': 'Астана',
+            'алматы': 'Алматы', 'almaty': 'Алматы', 'алма-ата': 'Алматы',
+            'кокшетау': 'Кокшетау', 'kokshetau': 'Кокшетау', 'көкшетау': 'Кокшетау',
+            'шымкент': 'Шымкент', 'shymkent': 'Шымкент', 'чимкент': 'Шымкент',
+            'туркестан': 'Туркестан', 'turkestan': 'Туркестан', 'түркістан': 'Туркестан',
+            'семей': 'Семей', 'semey': 'Семей', 'семипалатинск': 'Семей',
+            'павлодар': 'Павлодар', 'pavlodar': 'Павлодар',
+            'атырау': 'Атырау', 'atyrau': 'Атырау', 'гурьев': 'Атырау'
+        };
+        const lower = txt.toLowerCase();
+        for (const [key, city] of Object.entries(cityMap)) {
+            if (lower.includes(key)) {
+                const found = MUSEUMS_DB.filter(m => m.city === city || m.city_kz === city);
+                if (found.length) return { found: true, museums: found, city };
+            }
+        }
+        return { found: false, museums: [] };
+    }
+
+    function getAIResponse(msg) {
+        const lower = msg.toLowerCase();
+        const kb = {
+            ru: {
+                ticket:   "🎟️ **Стоимость билетов:**\n• Взрослый: 300–1500 ₸\n• Студенческий: 150–750 ₸\n• Дети до 7 лет: бесплатно\n\nТочные цены зависят от музея. Самый дорогой — музей-заповедник «Туркестан» (1500 ₸), самый доступный — Музей природы в Алматы (300 ₸).",
+                schedule: "🕐 **Расписание работы:**\nБольшинство музеев работают **вт–вс 10:00–18:00**, понедельник — выходной.\nМузей природы работает пн–пт, сб–вс выходной.\nМузей-заповедник «Туркестан» открыт с 9:00.",
+                exhibits: "🏺 **Знаменитые экспонаты Казахстана:**\n• 🥇 **Золотой человек** — 4 000+ золотых деталей (Нац. музей)\n• 🦁 **Каспийский тигр** — вымерший гигант (Музей природы, Алматы)\n• 🕌 **Мавзолей Ясави** — объект ЮНЕСКО (Туркестан)\n• 🦣 **Скелет мамонта** — 30 000 лет (Павлодар)\n• 📜 **Рукописи Абая** — наследие ЮНЕСКО (Семей)\n• ⚔️ **Сабля батыра** — XVIII век (Кокшетау)\n• 🪙 **Монеты Шёлкового пути** — II–XV вв. (Шымкент)",
+                recommend:"⭐ **Рекомендуемые музеи:**\n1. 🏛️ **Нац. музей РК** (Астана) — крупнейший в ЦА, 74 000 м²\n2. 🕌 **«Туркестан»** — объект ЮНЕСКО, дух тысячелетий\n3. 🎨 **Музей Кастеева** (Алматы) — лучший арт-музей\n4. 📜 **Дом-музей Абая** (Семей) — душа казахской поэзии\n5. 🦣 **Музей Потанина** (Павлодар) — скелет настоящего мамонта!\n6. ⛓️ **АЛЖИР** (Астана) — потрясающий мемориал истории",
+                facts:    "💡 **Интересные факты о музеях Казахстана:**\n\n🥇 «Золотой человек» — символ Казахстана — украшен более чем 4 000 золотыми деталями и датируется IV–III вв. до н.э.\n\n🕌 Мавзолей Ясави в Туркестане строил Тамерлан с 1389 года, и он намеренно не достроил его в знак уважения к святому.\n\n🌍 Атырау — единственный город в мире, стоящий одновременно на двух континентах: Европе и Азии.\n\n🐅 Каспийский тигр — крупнейший в мире — жил в Казахстане до 1948 года. Его чучело хранится в Алматы.\n\n🦣 В окрестностях Павлодара найдены мамонты возрастом 30 000 лет — их скелеты в местном музее.\n\n📜 Поэт Абай перевёл Пушкина, Лермонтова и Гёте на казахский язык, открыв целый мир своему народу.",
+                address:  "📍 Напишите название города или музея, чтобы узнать адрес.",
+                greeting: "👋 Здравствуйте! Я AI-помощник по музеям Казахстана. Спросите меня о любом музее!",
+                default:  "🤔 Не нашёл информацию. Попробуйте спросить о музеях Астаны, Алматы, Шымкента, Туркестана, Семея, Павлодара или Атырау, о билетах или интересных фактах."
+            },
+            kz: {
+                ticket:   "🎟️ **Билет бағасы:**\n• Ересек: 300–1500 ₸\n• Студент: 150–750 ₸\n• 7 жасқа дейінгі балалар: тегін",
+                schedule: "🕐 **Жұмыс кестесі:**\nКөпшілік мұражайлар **Сс–Жс 10:00–18:00**, Дс демалыс.",
+                exhibits: "🏺 **Ең танымал экспонаттар:**\n• Алтын адам (4 000+ алтын бөлшек)\n• Каспий жолбарысы (жойылып кеткен түр)\n• Ясауи кесенесі (ЮНЕСКО)\n• Мамонт қаңқасы (Павлодар)\n• Абай қолжазбалары",
+                facts:    "💡 **Қызықты деректер:**\n\n🥇 Алтын адам IV–III ғғ. б.з.д. жасалған, 4 000-нан астам алтын бөлшектермен безендірілген.\n\n🕌 Ясауи кесенесін Темірлан 1389 жылы салдырды.\n\n🌍 Атырау — Еуропа мен Азия шекарасындағы жалғыз қала.\n\n📜 Абай Пушкин, Лермонтов және Гётені қазақшаға аударды.",
+                recommend:"⭐ **Ұсынылатын мұражайлар:**\n1. ҚР Ұлттық музейі (Астана)\n2. Түркістан музей-қорығы\n3. Қастеев музейі (Алматы)\n4. Абайдың үй-музейі (Семей)",
+                address:  "📍 Мекенжайды білу үшін қала атауын жазыңыз.",
+                greeting: "👋 Сәлеметсіз бе! Мен мұражай туралы AI-көмекшімін.",
+                default:  "🤔 Ақпарат табылмады. Астана, Алматы, Шымкент, Түркістан, Семей, Павлодар немесе Атырау мұражайлары туралы сұраңыз."
+            },
+            en: {
+                ticket:   "🎟️ **Ticket prices:**\n• Adult: 300–1500 ₸\n• Student: 150–750 ₸\n• Children under 7: free",
+                schedule: "🕐 **Working hours:**\nMost museums work **Tue–Sun 10:00–18:00**, Monday closed.",
+                exhibits: "🏺 **Famous exhibits:**\n• Golden Man of Issyk (4,000+ gold pieces)\n• Caspian Tiger specimen (extinct)\n• Yasawi Mausoleum (UNESCO)\n• Mammoth skeleton (Pavlodar)\n• Abay manuscripts (UNESCO heritage)",
+                facts:    "💡 **Interesting facts:**\n\n🥇 The Golden Man (4th–3rd c. BC) is covered in 4,000+ gold pieces — its helmet shaped like a snow leopard, now the national symbol.\n\n🕌 Tamerlane began the Yasawi Mausoleum in 1389 and intentionally left it unfinished out of reverence.\n\n🌍 Atyrau is the only city in the world straddling two continents — Europe and Asia.\n\n🐅 The Caspian Tiger — the world's largest tiger — lived in Kazakhstan until 1948.\n\n📜 Poet Abay translated Pushkin, Lermontov and Goethe into Kazakh, opening European literature to his people.",
+                recommend:"⭐ **Recommended museums:**\n1. National Museum (Astana) — largest in CA\n2. Turkestan Reserve — UNESCO wonder\n3. Kasteev Museum (Almaty) — best art museum\n4. Abay House Museum (Semey) — poetic soul of Kazakhstan",
+                address:  "📍 Write a city or museum name to get the address.",
+                greeting: "👋 Hello! I'm your AI guide to Kazakhstan's museums!",
+                default:  "🤔 Couldn't find information. Try asking about museums in Astana, Almaty, Shymkent, Turkestan, Semey, Pavlodar, or Atyrau."
+            }
+        };
+        const know = kb[currentLanguage] || kb.ru;
+
+        if (/привет|здравствуй|hello|сәлем|қош/.test(lower)) return know.greeting;
+        if (/билет|ticket|баға|цена|стоимость/.test(lower)) return know.ticket;
+        if (/расписан|schedule|жұмыс|работ|часы/.test(lower)) return know.schedule;
+        if (/факт|интересн|удивит|знаешь|знали|facts|interesting/.test(lower)) return know.facts;
+        if (/экспонат|exhibit|коллекц|қор/.test(lower)) return know.exhibits;
+        if (/рекоменд|recommend|ұсын|лучш|популяр/.test(lower)) return know.recommend;
+
+        // Specific museum by name
+        const byName = MUSEUMS_DB.find(m =>
+            lower.includes(m.name.ru.toLowerCase()) ||
+            (m.name.kz && lower.includes(m.name.kz.toLowerCase())) ||
+            (m.name.en && lower.includes(m.name.en.toLowerCase()))
+        );
+        if (byName) {
+            const m = byName;
+            const sch = typeof m.schedule === 'object'
+                ? Object.entries(m.schedule).map(([k,v]) => `${k}: ${v}`).join(', ')
+                : m.schedule;
+            return `🏛️ **${getLang(m.name)}**\n\n📖 ${getLang(m.description)}\n\n🕐 ${sch}\n📍 ${getLang(m.address)}\n📞 ${m.phone}\n🌐 ${m.website}\n\n🎟️ Взрослый: ${m.ticketPrice.adult} | Студент: ${m.ticketPrice.student} | Ребёнок: ${m.ticketPrice.child}${m.fact ? '\n\n💡 **Интересный факт:** ' + m.fact : ''}`;
+        }
+
+        // City search
+        if (/адрес|address|где|мекенжай|расположен/.test(lower) || lower.includes('найди') || lower.includes('музе')) {
+            const cityResult = findMuseumsInText(msg);
+            if (cityResult.found) {
+                let resp = `🏛️ **Музеи в ${cityResult.city} (${cityResult.museums.length}):**\n\n`;
+                cityResult.museums.forEach(m => {
+                    resp += `• **${getLang(m.name)}**\n  📍 ${getLang(m.address)}\n  📞 ${m.phone}\n  🕐 ${getScheduleText(m.schedule)}\n\n`;
+                });
+                return resp;
+            }
+        }
+
+        const cityResult = findMuseumsInText(msg);
+        if (cityResult.found) {
+            let resp = `🏛️ **Музеи в ${cityResult.city} (${cityResult.museums.length}):**\n\n`;
+            cityResult.museums.forEach(m => {
+                resp += `• **${getLang(m.name)}**\n  📍 ${getLang(m.address)}\n  🕐 ${getScheduleText(m.schedule)}\n\n`;
+            });
+            return resp;
+        }
+
+        return know.default;
+    }
+
+    /* ─────────────────────────────────────────
+       SMART LOCAL AI ENGINE
+    ───────────────────────────────────────── */
+    const conversationContext = { lastCity: null, lastMuseum: null, turnCount: 0 };
+
+    function smartAI(msg) {
+        const lower = msg.toLowerCase().trim();
+        conversationContext.turnCount++;
+
+        // ── GREETINGS ──
+        if (/^(привет|здравствуй|сәлем|қош|hello|hi|салем|добрый|хай)/.test(lower)) {
+            const greets = [
+                '👋 Здравствуйте! Я ваш персональный гид по музеям Казахстана. Могу рассказать о любом из **15 музеев** в нашей базе — расписание, цены, экспонаты, интересные факты. Что вас интересует?',
+                '🏛️ Сәлеметсіз бе! Рад вас видеть! Спросите меня о музеях Астаны, Алматы, Туркестана, Семея, Павлодара или Атырау.',
+                '👋 Привет! Готов быть вашим гидом по музеям Казахстана. Куда отправимся сегодня?'
+            ];
+            return greets[conversationContext.turnCount % greets.length];
+        }
+
+        // ── THANKS ──
+        if (/спасиб|рахмет|thank|рақмет/.test(lower)) {
+            return '😊 Пожалуйста! Если захотите узнать ещё что-то о музеях Казахстана — спрашивайте!';
+        }
+
+        // ── INTERESTING FACTS ──
+        if (/факт|интересн|удивит|знаешь|знали|расскажи что|необычн|facts|curious/.test(lower)) {
+            const facts = [
+                '💡 **Знаете ли вы?**\n\n🥇 «Золотой человек» из кургана Иссык (IV–III вв. до н.э.) был покрыт **более чем 4 000 золотыми деталями**. Его шлем украшен изображением снежного барса — символа, ставшего гербом Казахстана.\n\n🕌 Мавзолей Ясави в Туркестане строил **Тамерлан с 1389 года** — и намеренно оставил незавершённым, как знак уважения к святому.\n\n🌍 **Атырау** — единственный город в мире на границе двух континентов: река Урал делит его на Европу и Азию.\n\n🐅 **Каспийский тигр** — крупнейший тигр в мире — жил в Казахстане до **1948 года**. Его чучело хранится в Алматы.\n\n🦣 В Павлодаре найдены мамонты возрастом **30 000 лет** — скелет в местном музее.',
+                '🔍 **Тайны казахских музеев:**\n\n📜 Поэт **Абай Кунанбаев** перевёл Пушкина, Лермонтова и Гёте на казахский язык. Его рукописи — в Семее. Слова назидания («Қара сөздер») внесены в наследие ЮНЕСКО.\n\n⛓️ В лагере **АЛЖИР** под Астаной в 1937–1953 гг. содержались жёны «врагов народа» — среди них матери выдающихся казахских деятелей.\n\n🪙 Шымкент стоит на **Великом шёлковом пути** — в музее хранятся монеты из Китая, Ирана и Рима, пролежавшие в земле более тысячи лет.\n\n🏙️ Алматы до 1921 года назывался **Верный** и был полностью разрушен землетрясением 1887 года.',
+            ];
+            return facts[conversationContext.turnCount % facts.length];
+        }
+
+        // ── TICKET PRICES ──
+        if (/билет|ticket|цена|стоимость|сколько стоит|баға|платн|бесплатн|free/.test(lower)) {
+            // Check if asking about specific museum
+            const found = MUSEUMS_DB.find(m => lower.includes(m.name.ru.toLowerCase().split(' ')[1]) || lower.includes(m.city.toLowerCase()));
+            if (found) {
+                return `🎟️ **Билеты — ${found.name.ru}:**\n\n• 👤 Взрослый: **${found.ticketPrice.adult}**\n• 🎓 Студент: **${found.ticketPrice.student}**\n• 👦 Дети: **${found.ticketPrice.child}**\n\n📍 ${found.address.ru}\n📞 ${found.phone}`;
+            }
+            return '🎟️ **Стоимость билетов по музеям:**\n\n| Музей | Взрослый | Студент | Дети |\n' +
+                MUSEUMS_DB.map(m => `• **${m.name.ru.split(' ').slice(0,3).join(' ')}** (${m.city}): ${m.ticketPrice.adult} / ${m.ticketPrice.student} / ${m.ticketPrice.child}`).join('\n') +
+                '\n\n💡 Большинство музеев — **бесплатно для детей до 7 лет**.';
+        }
+
+        // ── SCHEDULE ──
+        if (/расписан|режим|часы|работ|schedule|открыт|закрыт|выходн|жұмыс/.test(lower)) {
+            const found = MUSEUMS_DB.find(m => lower.includes(m.city.toLowerCase()) || lower.includes(m.name.ru.toLowerCase().split(' ')[1]));
+            if (found) {
+                const sch = Object.entries(found.schedule).map(([k,v]) => `• ${k}: **${v}**`).join('\n');
+                return `🕐 **Расписание — ${found.name.ru}:**\n\n${sch}\n\n📞 ${found.phone}`;
+            }
+            return '🕐 **Расписание большинства музеев:**\n\n• Понедельник: **Выходной**\n• Вт–Пт: **09:00–18:00**\n• Суббота: **10:00–17:00**\n• Воскресенье: **10:00–16:00**\n\nМузей природы в Алматы работает **только пн–пт**. Туркестан открыт с **9:00**. Уточните у конкретного музея!';
+        }
+
+        // ── RECOMMENDATIONS ──
+        if (/рекоменд|посоветуй|лучш|топ|популяр|стоит посетить|куда пойти|что посмотреть/.test(lower)) {
+            return '⭐ **Топ-6 музеев Казахстана:**\n\n🥇 **Национальный музей РК** (Астана) — крупнейший в Центральной Азии, 74 000 м². Обязателен к посещению.\n\n🥈 **Музей-заповедник «Туркестан»** — объект ЮНЕСКО, мавзолей Ясави XIV века. Особая атмосфера.\n\n🥉 **Музей Кастеева** (Алматы) — 25 000 произведений искусства, лучший арт-музей страны.\n\n4️⃣ **Дом-музей Абая** (Семей) — рукописи и личные вещи великого поэта.\n\n5️⃣ **Музей Потанина** (Павлодар) — настоящий скелет мамонта!\n\n6️⃣ **АЛЖИР** (Астана) — мемориал жертв репрессий, пронзительное место.';
+        }
+
+        // ── EXHIBITS / COLLECTIONS ──
+        if (/экспонат|коллекц|что хранится|что есть|артефакт|exhibit|золот|мамонт|тигр|барс/.test(lower)) {
+            const found = MUSEUMS_DB.find(m => lower.includes(m.city.toLowerCase()) || (m.name.ru.toLowerCase().split(' ').some(w => w.length > 4 && lower.includes(w))));
+            if (found && found.exhibits) {
+                return `🏺 **Коллекция — ${found.name.ru}:**\n\n${found.exhibits.map(e => `• ${e}`).join('\n')}\n\n📖 ${found.description.ru}${found.fact ? '\n\n💡 ' + found.fact : ''}`;
+            }
+            return '🏺 **Самые известные экспонаты Казахстана:**\n\n🥇 **Золотой человек** — 4 000+ золотых деталей, IV–III вв. до н.э. (Нац. музей, Астана)\n🐅 **Чучело Каспийского тигра** — вымерший гигант (Музей природы, Алматы)\n🦣 **Скелет мамонта** — 30 000 лет (Павлодар)\n🕌 **Мавзолей Ясави** — ЮНЕСКО (Туркестан)\n📜 **Рукописи Абая** — наследие ЮНЕСКО (Семей)\n⚔️ **Сабля батыра** — XVIII век (Кокшетау)\n🪙 **Монеты Шёлкового пути** — II–XV вв. (Шымкент)';
+        }
+
+        // ── ADDRESS / WHERE IS ──
+        if (/адрес|где находится|как доехать|где|address|location|мекен/.test(lower)) {
+            const found = MUSEUMS_DB.find(m =>
+                lower.includes(m.city.toLowerCase()) ||
+                m.name.ru.toLowerCase().split(' ').some(w => w.length > 4 && lower.includes(w))
+            );
+            if (found) {
+                return `📍 **${found.name.ru}**\n\n🗺️ ${found.address.ru}\n📞 ${found.phone}\n🌐 ${found.website}\n\n🕐 ${Object.entries(found.schedule).map(([k,v])=>`${k}: ${v}`).join(' | ')}`;
+            }
+        }
+
+        // ── SPECIFIC MUSEUM BY NAME ──
+        const byName = MUSEUMS_DB.find(m =>
+            m.name.ru.toLowerCase().split(' ').some(w => w.length > 4 && lower.includes(w)) ||
+            (m.name.kz && lower.includes(m.name.kz.toLowerCase().split(' ')[0])) ||
+            lower.includes(m.city.toLowerCase() + ' музей') ||
+            lower.includes('музей ' + m.city.toLowerCase())
+        );
+        if (byName) {
+            conversationContext.lastMuseum = byName;
+            conversationContext.lastCity = byName.city;
+            const sch = Object.entries(byName.schedule).map(([k,v]) => `${k}: ${v}`).join(' | ');
+            return `🏛️ **${byName.name.ru}**\n\n📖 ${byName.description.ru}\n\n🕐 ${sch}\n📍 ${byName.address.ru}\n📞 ${byName.phone}\n🌐 ${byName.website}\n\n🎟️ Взрослый: **${byName.ticketPrice.adult}** | Студент: **${byName.ticketPrice.student}** | Дети: **${byName.ticketPrice.child}**${byName.fact ? '\n\n💡 **Факт:** ' + byName.fact : ''}`;
+        }
+
+        // ── CITY SEARCH ──
+        const cityResult = findMuseumsInText(msg);
+        if (cityResult.found) {
+            conversationContext.lastCity = cityResult.city;
+            const list = cityResult.museums.map((m, i) =>
+                `${i+1}️⃣ **${m.name.ru}**\n   📍 ${m.address.ru}\n   🕐 ${getScheduleText(m.schedule)}\n   🎟️ ${m.ticketPrice.adult}${m.fact ? '\n   💡 ' + m.fact.substring(0, 60) + '…' : ''}`
+            ).join('\n\n');
+            return `🏛️ **Музеи ${cityResult.city} (${cityResult.museums.length}):**\n\n${list}\n\n❓ Спросите подробнее о любом из них!`;
+        }
+
+        // ── FOLLOW-UP: if user asks "расскажи подробнее" or similar ──
+        if (/подробн|ещё|больше|расскажи|details|more/.test(lower) && conversationContext.lastMuseum) {
+            const m = conversationContext.lastMuseum;
+            return `🔍 **Подробнее о ${m.name.ru}:**\n\n${m.description.ru}\n\n🏺 **Экспонаты:**\n${m.exhibits ? m.exhibits.map(e=>'• '+e).join('\n') : 'Разнообразная коллекция'}\n\n${m.fact ? '💡 **Интересный факт:** ' + m.fact : ''}\n\n🌐 ${m.website}`;
+        }
+
+        // ── HOW MANY MUSEUMS ──
+        if (/сколько музе|how many/.test(lower)) {
+            const cities = [...new Set(MUSEUMS_DB.map(m => m.city))];
+            return `📊 В нашей базе **${MUSEUMS_DB.length} музеев** в ${cities.length} городах:\n\n${cities.map(c => `• **${c}**: ${MUSEUMS_DB.filter(m=>m.city===c).length} музей(ев)`).join('\n')}`;
+        }
+
+        // ── WHAT CAN YOU DO ──
+        if (/что умеешь|что можешь|help|помощь|справка|что спросить/.test(lower)) {
+            return '🤖 **Я умею:**\n\n🏛️ Найти музеи в любом городе Казахстана\n📍 Дать адреса и контакты\n🕐 Рассказать расписание работы\n🎟️ Назвать стоимость билетов\n🏺 Описать коллекции и экспонаты\n💡 Поделиться интересными фактами\n⭐ Порекомендовать что посетить\n\nПросто спрашивайте — я отвечу!';
+        }
+
+        // ── DEFAULT: show all museums list ──
+        const randomFact = MUSEUMS_DB.filter(m => m.fact)[Math.floor(Math.random() * MUSEUMS_DB.filter(m=>m.fact).length)];
+        return `🤔 Не совсем понял вопрос, но могу помочь!\n\nСпросите, например:\n• «Музеи в Алматы»\n• «Расписание Национального музея»\n• «Расскажи интересные факты»\n• «Сколько стоят билеты?»\n• «Рекомендуй музей»\n\n💡 **Случайный факт:** ${randomFact ? randomFact.fact : 'Казахстан — 9-я по площади страна в мире!'}`;
+    }
+
+    async function sendMessage() {
+        const msg = messageInput.value.trim();
+        if (!msg) return;
+
+        addMessage('user', msg);
+        messageInput.value = '';
+        autoResizeTextarea();
+        typingIndicator.style.display = 'flex';
+        chatMessagesDiv.scrollTo({ top: chatMessagesDiv.scrollHeight, behavior: 'smooth' });
+
+        // Small realistic delay
+        await new Promise(r => setTimeout(r, 400 + Math.random() * 500));
+
+        typingIndicator.style.display = 'none';
+        addMessage('bot', smartAI(msg));
+    }
+
+    /* ─────────────────────────────────────────
+       TEXTAREA AUTO-RESIZE
+    ───────────────────────────────────────── */
+    function autoResizeTextarea() {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+    }
+
+    /* ─────────────────────────────────────────
+       VOICE INPUT
+    ───────────────────────────────────────── */
+    function startVoiceInput() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) { showToast('❌ Голосовой ввод не поддерживается'); return; }
+
+        currentRecognition = new SR();
+        currentRecognition.lang = currentLanguage === 'kz' ? 'kk-KZ' : currentLanguage === 'en' ? 'en-US' : 'ru-RU';
+        currentRecognition.interimResults = false;
+        voiceModal.style.display = 'flex';
+
+        currentRecognition.onresult = e => {
+            messageInput.value = e.results[0][0].transcript;
+            voiceModal.style.display = 'none';
+            sendMessage();
+        };
+        currentRecognition.onerror = () => {
+            voiceModal.style.display = 'none';
+            showToast('❌ Ошибка распознавания');
+        };
+        currentRecognition.onend = () => { voiceModal.style.display = 'none'; };
+        currentRecognition.start();
+    }
+
+    /* ─────────────────────────────────────────
+       THEME
+    ───────────────────────────────────────── */
+    function toggleTheme() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (isDark) {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+            themeToggleBtn.textContent = '🌙 Тёмная тема';
+        } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+            themeToggleBtn.textContent = '☀️ Светлая тема';
+        }
+    }
+
+    function loadTheme() {
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeToggleBtn.textContent = '☀️ Светлая тема';
+        }
+    }
+
+    /* ─────────────────────────────────────────
+       KEYBOARD: close sidebar on Escape
+    ───────────────────────────────────────── */
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && sidebarOpen) closeSidebar();
+    });
+
+    /* ─────────────────────────────────────────
+       INIT
+    ───────────────────────────────────────── */
+    function init() {
+        renderMuseums();
+        renderFavorites();
+        loadTheme();
+        loadChatHistory();
+
+        // Send
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        });
+        messageInput.addEventListener('input', autoResizeTextarea);
+
+        // Search
+        searchBtn.addEventListener('click', searchMuseums);
+        searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') searchMuseums(); });
+
+        // City filters
+        document.querySelectorAll('.city-filter').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.city-filter').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                filterByCity(btn.dataset.city);
+            });
+        });
+
+        // Language
+        document.querySelectorAll('.lang-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.lang-option').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentLanguage = btn.dataset.lang;
+                renderMuseums();
+                renderFavorites();
+                showToast(`🌐 Язык изменён: ${btn.textContent}`);
+            });
+        });
+
+        // Quick suggestions
+        document.querySelectorAll('.suggestion-chip').forEach(btn => {
+            btn.addEventListener('click', () => {
+                messageInput.value = btn.dataset.query;
+                sendMessage();
+            });
+        });
+
+        // Sidebar
+        menuToggle.addEventListener('click', toggleSidebar);
+        closeSidebarBtn.addEventListener('click', closeSidebar);
+        overlay.addEventListener('click', closeSidebar);
+
+        // Theme
+        themeToggleBtn.addEventListener('click', toggleTheme);
+
+        // Voice
+        voiceBtn.addEventListener('click', startVoiceInput);
+        stopVoiceBtn.addEventListener('click', () => {
+            if (currentRecognition) currentRecognition.stop();
+            voiceModal.style.display = 'none';
+        });
+
+        // Clear chat
+        clearChatBtn.addEventListener('click', clearChatHistory);
+
+        // Fix: on resize, manage sidebar state
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768 && sidebarOpen) {
+                // On desktop keep open but remove overflow lock
+                document.body.style.overflow = '';
+                overlay.classList.remove('active');
+            }
+        });
+
+        // iOS: fix 100vh bug — recalculate on resize
+        function setDVH() {
+            document.documentElement.style.setProperty('--dvh', window.innerHeight * 0.01 + 'px');
+        }
+        setDVH();
+        window.addEventListener('resize', setDVH);
+        window.addEventListener('orientationchange', () => setTimeout(setDVH, 300));
+    }
+
+    init();
+})();
+</script>
+</body>
+</html>
